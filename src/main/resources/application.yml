@@ -1,0 +1,44 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:kmsdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+  h2:
+    console:
+      enabled: true         # ✅ Enable H2 console
+      path: /h2-console     # ✅ Console available at /h2-console
+
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: iamfaiq7@gmail.com      # ✅ Your Gmail address
+    password: kugm ekal nlpf ktop  # 🔑 Replace with generated App Password
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+server:
+  port: 8080
+
+jwt:
+  secret: SuperSecretJwtKeyForKMS12345
+  expiration-ms: 3600000
+
+# OTP settings
+kms:
+  otp:
+    expiration-minutes: 5     # OTP valid for 5 minutes
