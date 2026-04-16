@@ -9,3 +9,7 @@
 /.vscode
 /.history
 .DS_Store
+
+# Frontend
+kms-frontend/node_modules/
+kms-frontend/dist/

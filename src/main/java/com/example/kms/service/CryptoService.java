@@ -140,6 +140,82 @@ public class CryptoService {
         return b;
     }
 
+    // -------------------------------------------------------------------------
+    // Column-level encryption helpers (mirrors EncryptDecryptConverter logic)
+    // -------------------------------------------------------------------------
+
+    private static final String DEV_FALLBACK_COLUMN_KEY_B64 = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+
+    private byte[] loadColumnMasterKey() {
+        String envKey = System.getenv("VAULT_COLUMN_MASTER_KEY");
+        if (envKey == null || envKey.isBlank()) {
+            envKey = DEV_FALLBACK_COLUMN_KEY_B64;
+        }
+        byte[] keyBytes = Base64.getDecoder().decode(envKey);
+        if (keyBytes.length != AES_KEY_BYTES) {
+            throw new IllegalStateException(
+                    "VAULT_COLUMN_MASTER_KEY must be a Base64-encoded 32-byte key, got " + keyBytes.length);
+        }
+        return keyBytes;
+    }
+
+    /**
+     * Encrypts a plaintext string using AES-256-GCM with a random 12-byte IV.
+     * Returns Base64(iv[12] || ciphertext_with_auth_tag), or null if plaintext is null.
+     * Master key is loaded from VAULT_COLUMN_MASTER_KEY env var.
+     */
+    public String encryptColumnValue(String plaintext) {
+        if (plaintext == null) return null;
+        try {
+            byte[] key = loadColumnMasterKey();
+            byte[] combined = aesGcmEncryptBytes(key, plaintext.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(combined);
+        } catch (Exception e) {
+            throw new RuntimeException("Error encrypting column value", e);
+        }
+    }
+
+    /**
+     * Decrypts a Base64(iv[12] || ciphertext) string produced by encryptColumnValue.
+     * Returns null if encryptedBase64 is null.
+     */
+    public String decryptColumnValue(String encryptedBase64) {
+        if (encryptedBase64 == null) return null;
+        try {
+            byte[] key = loadColumnMasterKey();
+            byte[] combined = Base64.getDecoder().decode(encryptedBase64);
+            byte[] plaintext = aesGcmDecryptBytes(key, combined);
+            return new String(plaintext, java.nio.charset.StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("Error decrypting column value", e);
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Server KEK derivation
+    // -------------------------------------------------------------------------
+
+    /**
+     * Derives a 32-byte server KEK for the given emailHash using HKDF-SHA256.
+     * IKM is loaded from VAULT_SERVER_KEK env var, falling back to VAULT_COLUMN_MASTER_KEY.
+     * Salt: 16 zero bytes.
+     * Info: "VAULT-v1|dek-wrap|server|emailHash:" + emailHash
+     */
+    public byte[] deriveServerKek(String emailHash) throws Exception {
+        String envKey = System.getenv("VAULT_SERVER_KEK");
+        if (envKey == null || envKey.isBlank()) {
+            envKey = System.getenv("VAULT_COLUMN_MASTER_KEY");
+        }
+        if (envKey == null || envKey.isBlank()) {
+            envKey = DEV_FALLBACK_COLUMN_KEY_B64;
+        }
+        byte[] ikm = Base64.getDecoder().decode(envKey);
+        byte[] salt = new byte[16]; // 16 zero bytes
+        byte[] info = ("VAULT-v1|dek-wrap|server|emailHash:" + emailHash)
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return hkdf(salt, ikm, info, AES_KEY_BYTES);
+    }
+
     public String encodeKey(Key key) {
         return Base64.getEncoder().encodeToString(key.getEncoded());
     }

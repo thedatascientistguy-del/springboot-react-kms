@@ -29,6 +29,10 @@ public class Client {
     @Column(nullable = false, unique = true)
     private String emailHash;
 
+    // 🔹 SHA-256 hash of phone for lookup
+    @Column(name = "phone_hash")
+    private String phoneHash;
+
     @Column(nullable = false)
     private String password; // stored as BCrypt hash
 
@@ -67,6 +71,9 @@ public class Client {
 
     public String getEmailHash() { return emailHash; }
     public void setEmailHash(String emailHash) { this.emailHash = emailHash; }
+
+    public String getPhoneHash() { return phoneHash; }
+    public void setPhoneHash(String phoneHash) { this.phoneHash = phoneHash; }
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }

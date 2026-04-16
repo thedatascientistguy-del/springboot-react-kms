@@ -9,6 +9,7 @@ import com.example.kms.model.Client;
 import com.example.kms.model.DataType;
 import com.example.kms.model.EncryptedData;
 import com.example.kms.service.ClientService;
+import com.example.kms.util.JwtUtil;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +23,11 @@ import java.util.stream.Collectors;
 public class ClientController {
 
     private final ClientService clientService;
+    private final JwtUtil jwtUtil;
 
-    public ClientController(ClientService clientService) {
+    public ClientController(ClientService clientService, JwtUtil jwtUtil) {
         this.clientService = clientService;
+        this.jwtUtil = jwtUtil;
     }
 
     // ✅ Register new client
@@ -39,13 +42,17 @@ public class ClientController {
     public ResponseEntity<ClientLoginResponse> login(@Valid @RequestBody ClientLoginRequest req) {
         Client client = clientService.loginClient(req);
 
+        String token = jwtUtil.generateToken(client.getEmailHash());
+
         ClientLoginResponse resp = new ClientLoginResponse();
-        resp.setId(client.getId());  // Long → String
+        resp.setId(client.getId());
         resp.setName(client.getName());
         resp.setEmail(client.getEmail());
         resp.setPhone(client.getPhone());
         resp.setServerPublicKey(client.getServerPublicKey());
         resp.setPublicKey(client.getPublicKey());
+        resp.setToken(token);
+        resp.setEmailHash(client.getEmailHash());
 
         return ResponseEntity.ok(resp);
     }

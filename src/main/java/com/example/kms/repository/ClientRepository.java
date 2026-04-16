@@ -8,5 +8,6 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
     Optional<Client> findByEmailHash(String emailHash);
     Optional<Client> findByEmail(String email);
     Optional<Client> findByPhone(String phone);
+    Optional<Client> findByPhoneHash(String phoneHash);
 }
 

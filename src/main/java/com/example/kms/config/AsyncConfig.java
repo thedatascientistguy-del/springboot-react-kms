@@ -1,0 +1,35 @@
+package com.example.kms.config;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import java.util.concurrent.Executor;
+
+@Configuration
+@EnableAsync
+public class AsyncConfig {
+
+    @Bean(name = "fileIoExecutor")
+    public Executor fileIoExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(10);
+        executor.setMaxPoolSize(50);
+        executor.setQueueCapacity(200);
+        executor.setThreadNamePrefix("file-io-");
+        executor.initialize();
+        return executor;
+    }
+
+    @Bean(name = "cryptoExecutor")
+    public Executor cryptoExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(4);
+        executor.setMaxPoolSize(Runtime.getRuntime().availableProcessors() * 2);
+        executor.setQueueCapacity(100);
+        executor.setThreadNamePrefix("crypto-");
+        executor.initialize();
+        return executor;
+    }
+}

@@ -10,7 +10,6 @@ import com.example.kms.model.DataType;
 import com.example.kms.repository.ClientRepository;
 import com.example.kms.repository.EncryptedDataRepository;
 import com.example.kms.util.HashUtil;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -48,18 +47,22 @@ public class ClientService {
             throw new IllegalArgumentException("Phone already registered");
         }
 
-        // Hash the email for login lookups
-        String emailHash = HashUtil.sha256(req.getEmail());
+        // Hash the email for login lookups (HashUtil.sha256 already lowercases)
+        String emailHash = HashUtil.sha256(req.getEmail().toLowerCase());
 
         if (clientRepository.findByEmailHash(emailHash).isPresent()) {
             throw new IllegalArgumentException("email already registered");
         }
+
+        // Hash the phone for lookup
+        String phoneHash = HashUtil.sha256(req.getPhone());
 
         Client c = new Client();
         c.setName(req.getName());
         c.setPhone(req.getPhone());
         c.setEmail(req.getEmail()); // will be encrypted by JPA converter
         c.setEmailHash(emailHash);
+        c.setPhoneHash(phoneHash);
 
         // Hash password with BCrypt
         c.setPassword(passwordEncoder.encode(req.getPassword()));
@@ -89,7 +92,7 @@ public class ClientService {
 
 @Transactional(readOnly = true)
 public Client loginClient(ClientLoginRequest req) {
-    String emailHash = HashUtil.sha256(req.getEmail());
+    String emailHash = HashUtil.sha256(req.getEmail().toLowerCase());
 
     Client client = clientRepository.findByEmailHash(emailHash)
             .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
